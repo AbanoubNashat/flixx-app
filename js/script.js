@@ -1,5 +1,17 @@
+// we added this for structuring code cuz man normal Js is hell
+// we added search object to help us with pagination and make our life more easier and to control search functionality.
 const global = {
-  currentPage: window.location.pathname
+  currentPage: window.location.pathname,
+  search: {
+    type: '',
+    term: '',
+    page: 1,
+    totalPages: 1
+  },
+  api: {
+    apiKey: '31a6c3f2d1e8dc0ecddccd116b88dcc0',
+    apiUrl: 'https://api.themoviedb.org/3/'
+  }
 };
 
 // highlights the current page in the nav bar
@@ -16,10 +28,22 @@ function highlightActiveLink() {
 // global function for fetching data
 async function fetchData(endpoint) {
   // added .env and wanted to use vite but this project is simple for this use case
-  const API_KEY = '31a6c3f2d1e8dc0ecddccd116b88dcc0';
-  const API_URL = 'https://api.themoviedb.org/3/';
+  const API_KEY = global.api.apiKey;
+  const API_URL = global.api.apiUrl;
   showSpinner();
   const response = await fetch(`${API_URL}${endpoint}?api_key=${API_KEY}&language=en-US`);
+  const data = await response.json();
+  hideSpinner();
+  return data;
+}
+
+// global function for fetching data
+async function searchAPIData() {
+  // added .env and wanted to use vite but this project is simple for this use case
+  const API_KEY = global.api.apiKey;
+  const API_URL = global.api.apiUrl;
+  showSpinner();
+  const response = await fetch(`${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}`);
   const data = await response.json();
   hideSpinner();
   return data;
@@ -144,8 +168,23 @@ async function displayMovieDetails() {
   document.querySelector('#movie-details').appendChild(div);
 }
 
+async function search() {
+  // we make a get request so the data can be sent with url so we capture the url with queryString then get the parameters with URLSearchParams class.
+  const queryString = window.location.search;
+  const urlParams = new URLSearchParams(queryString);
+  global.search.type = urlParams.get('type');
+  global.search.term = urlParams.get('search-term');
+  if (global.search.term !== '' && global.search.term !== null) {
+    const results = await searchAPIData();
+    console.log(results);
+  }
+  else {
+    showAlert("Please Enter a Search Term");
+  }
+}
+
 // shows the sliding movies
-async function displaySwiper() {
+async function displaySlider() {
   const endpoint = 'movie/now_playing';
   const { results } = await fetchData(endpoint);
   results.forEach((movie) => {
@@ -163,6 +202,7 @@ async function displaySwiper() {
   initSwiper();
 }
 
+// added the swiper library
 function initSwiper() {
   const swiper = new Swiper('.swiper', {
     slidesPerView: 1,
@@ -186,7 +226,6 @@ function initSwiper() {
     }
   })
 }
-
 
 // display show details
 async function displayShowDetails() {
@@ -239,6 +278,15 @@ async function displayShowDetails() {
   document.querySelector('#show-details').appendChild(div);
 }
 
+// Show Alert message
+function showAlert(message, className) {
+  const alertEl = document.createElement('div');
+  alertEl.classList.add('alert', className);
+  alertEl.textContent = message;
+  document.querySelector('#alert').appendChild(alertEl);
+  setTimeout(() => alertEl.remove(), 3000);
+}
+
 function addCommasToNumber(number) {
   const formatter = new Intl.NumberFormat(`en-US`);
   return formatter.format(number);
@@ -271,7 +319,7 @@ function init() {
     case '/':
     case '/index.html':
       console.log('home');
-      displaySwiper();
+      displaySlider();
       displayPopularMovies();
       break;
     case '/movie-details.html':
@@ -279,6 +327,7 @@ function init() {
       console.log('movie details');
       break;
     case '/search.html':
+      search();
       console.log('search');
       break;
     case '/shows.html':
