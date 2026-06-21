@@ -6,7 +6,9 @@ const global = {
     type: '',
     term: '',
     page: 1,
-    totalPages: 1
+    totalPages: 1,
+    totalResults: 0,
+    resultsLength: 0,
   },
   api: {
     apiKey: '31a6c3f2d1e8dc0ecddccd116b88dcc0',
@@ -43,7 +45,7 @@ async function searchAPIData() {
   const API_KEY = global.api.apiKey;
   const API_URL = global.api.apiUrl;
   showSpinner();
-  const response = await fetch(`${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}`);
+  const response = await fetch(`${API_URL}search/${global.search.type}?api_key=${API_KEY}&language=en-US&query=${global.search.term}&page=${global.search.page}`);
   const data = await response.json();
   hideSpinner();
   return data;
@@ -175,8 +177,12 @@ async function search() {
   global.search.type = urlParams.get('type');
   global.search.term = urlParams.get('search-term');
   if (global.search.term !== '' && global.search.term !== null) {
-    const { results, total_pages } = await searchAPIData();
+    const { results, total_pages, page, total_results } = await searchAPIData();
     console.log(results);
+    global.search.totalResults = total_results;
+    global.search.page = page;
+    global.search.totalPages = total_pages;
+    global.search.resultsLength = results.length;
     if (results.length === 0) {
       showAlert('No Results To Show', 'success');
     }
@@ -188,6 +194,9 @@ async function search() {
 }
 // displaying search results
 function displaySearchResult(results) {
+  document.querySelector('#search-results').innerHTML = ``;
+  document.querySelector('#search-results-heading').innerHTML = ``;
+  document.querySelector('#pagination').innerHTML = ``;
   results.forEach(result => {
     const div = document.createElement('div');
     div.classList.add('card');
@@ -210,8 +219,41 @@ function displaySearchResult(results) {
             </p>
           </div>
         `
+    document.querySelector('#search-results-heading').innerHTML = `<h2>${global.search.resultsLength} of ${global.search.totalResults} for ${global.search.term}</h2>`
     document.querySelector('#search-results').appendChild(div);
   });
+  displayPagination();
+}
+
+// create and displaying pagination buttons and functionality
+function displayPagination() {
+  const div = document.createElement('div');
+  div.classList.add('pagination');
+  div.innerHTML = `
+        <button class="btn btn-primary" id="prev">Prev</button>
+        <button class="btn btn-primary" id="next">Next</button>
+        <div class="page-counter">Page ${global.search.page} of ${global.search.totalPages}</div>
+      `;
+  document.querySelector('#pagination').appendChild(div);
+  // disable buttons with pages state
+  if (global.search.page === 1) {
+    document.querySelector('#prev').disabled = true;
+  }
+  if (global.search.page === global.search.totalPages) {
+    document.querySelector('#next').disabled = true;
+  }
+  document.querySelector('#next').addEventListener('click', async () => {
+    global.search.page++;
+    const { results } = await searchAPIData();
+    global.search.resultsLength += results.length;
+    displaySearchResult(results)
+  })
+  document.querySelector('#prev').addEventListener('click', async () => {
+    global.search.page--;
+    const { results } = await searchAPIData();
+    global.search.resultsLength -= results.length;
+    displaySearchResult(results)
+  })
 }
 
 // shows the sliding movies
