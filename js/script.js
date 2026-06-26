@@ -16,11 +16,33 @@ const global = {
   }
 };
 
+function normalizePath(path) {
+  if (!path || path === '/') {
+    return '/index';
+  }
+
+  let normalizedPath = path.toLowerCase();
+
+  if (normalizedPath.endsWith('/')) {
+    normalizedPath = normalizedPath.slice(0, -1);
+  }
+
+  if (normalizedPath.endsWith('.html')) {
+    normalizedPath = normalizedPath.slice(0, -5);
+  }
+
+  return normalizedPath || '/index';
+}
+
 // highlights the current page in the nav bar
 function highlightActiveLink() {
   const links = document.querySelectorAll('.nav-link');
+  const currentPath = normalizePath(global.currentPage);
+
   links.forEach(link => {
-    if (link.getAttribute('href') === global.currentPage) {
+    const linkPath = normalizePath(new URL(link.href, window.location.origin).pathname);
+
+    if (linkPath === currentPath) {
       link.classList.add('active');
     }
   });
@@ -388,26 +410,27 @@ function displayBackground(type, backgroundPath) {
 
 // init resources on app loading
 function init() {
-  switch (global.currentPage) {
-    case '/':
-    case '/index.html':
+  const currentPath = normalizePath(global.currentPage);
+
+  switch (currentPath) {
+    case '/index':
       console.log('home');
       displaySlider();
       displayPopularMovies();
       break;
-    case '/movie-details.html':
+    case '/movie-details':
       displayMovieDetails();
       console.log('movie details');
       break;
-    case '/search.html':
+    case '/search':
       search();
       console.log('search');
       break;
-    case '/shows.html':
+    case '/shows':
       console.log('tv shows');
       displayPopularShows();
       break;
-    case '/tv-details.html':
+    case '/tv-details':
       displayShowDetails();
       console.log('tv show details');
       break;
